@@ -1,0 +1,22 @@
+{
+  "name": "SportsHub - NSES Sports Management",
+  "short_name": "SportsHub",
+  "description": "Noble-Saint-English-School Sports Management Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0052CC",
+  "theme_color": "#0052CC",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/school-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "sports", "productivity"],
+  "lang": "en-US",
+  "dir": "ltr"
+}
