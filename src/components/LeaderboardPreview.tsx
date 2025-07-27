@@ -13,7 +13,7 @@ interface House {
 const mockHouses: House[] = [
   {
     id: 1,
-    name: "Phoenix House",
+    name: "RED House",
     points: 2450,
     color: "text-red-600",
     gradient: "from-red-500 to-orange-500",
@@ -21,7 +21,7 @@ const mockHouses: House[] = [
   },
   {
     id: 2,
-    name: "Dragon House",
+    name: "BLUE House",
     points: 2340,
     color: "text-blue-600",
     gradient: "from-blue-500 to-indigo-500",
@@ -29,7 +29,7 @@ const mockHouses: House[] = [
   },
   {
     id: 3,
-    name: "Griffin House",
+    name: "GREEN House",
     points: 2210,
     color: "text-green-600",
     gradient: "from-green-500 to-emerald-500",
@@ -37,10 +37,10 @@ const mockHouses: House[] = [
   },
   {
     id: 4,
-    name: "Eagle House",
+    name: "YELLOW House",
     points: 2180,
-    color: "text-purple-600",
-    gradient: "from-purple-500 to-violet-500",
+    color: "text-yellow-600",
+    gradient: "from-yellow-500 to-yellow-500",
     position: 4
   }
 ];
