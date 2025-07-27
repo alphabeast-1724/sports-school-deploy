@@ -30,7 +30,7 @@ interface SportLeaderboard {
 
 const mockHouseData: HouseData[] = [
   {
-    name: 'Blue Dragons',
+    name: 'Blue HOUSE',
     color: 'bg-blue-500',
     points: 1250,
     rank: 1,
@@ -40,7 +40,7 @@ const mockHouseData: HouseData[] = [
     change: 5
   },
   {
-    name: 'Red Phoenix',
+    name: 'Red HOUSE',
     color: 'bg-red-500',
     points: 1180,
     rank: 2,
@@ -50,7 +50,7 @@ const mockHouseData: HouseData[] = [
     change: -2
   },
   {
-    name: 'Green Wolves',
+    name: 'Green HOUSE',
     color: 'bg-green-500',
     points: 1150,
     rank: 3,
@@ -60,7 +60,7 @@ const mockHouseData: HouseData[] = [
     change: 3
   },
   {
-    name: 'Yellow Eagles',
+    name: 'Yellow HOUSE',
     color: 'bg-yellow-500',
     points: 1090,
     rank: 4,
