@@ -1,60 +1,27 @@
 import { useState, useEffect } from 'react';
 import { Trophy, Crown, Medal, Award, ArrowRight } from 'lucide-react';
+import { useHousePoints } from '@/components/hooks/useSupabaseData';
 
 interface House {
-  id: number;
+  id: string;
   name: string;
-  points: number;
+  total_points: number;
   color: string;
-  gradient: string;
-  position: number;
 }
 
-const mockHouses: House[] = [
-  {
-    id: 1,
-    name: "Phoenix House",
-    points: 2450,
-    color: "text-red-600",
-    gradient: "from-red-500 to-orange-500",
-    position: 1
-  },
-  {
-    id: 2,
-    name: "Dragon House",
-    points: 2340,
-    color: "text-blue-600",
-    gradient: "from-blue-500 to-indigo-500",
-    position: 2
-  },
-  {
-    id: 3,
-    name: "Griffin House",
-    points: 2210,
-    color: "text-green-600",
-    gradient: "from-green-500 to-emerald-500",
-    position: 3
-  },
-  {
-    id: 4,
-    name: "Eagle House",
-    points: 2180,
-    color: "text-purple-600",
-    gradient: "from-purple-500 to-violet-500",
-    position: 4
-  }
-];
-
 const LeaderboardPreview = () => {
-  const [animatedPoints, setAnimatedPoints] = useState<{ [key: number]: number }>({});
+  const [animatedPoints, setAnimatedPoints] = useState<{ [key: string]: number }>({});
   const [isVisible, setIsVisible] = useState(false);
+  const { houses, isLoading } = useHousePoints();
 
-  const maxPoints = Math.max(...mockHouses.map(house => house.points));
+  const maxPoints = houses.length > 0 ? Math.max(...houses.map(house => house.total_points)) : 0;
 
   useEffect(() => {
+    if (houses.length === 0) return;
+
     // Initialize animated points to 0
-    const initialPoints: { [key: number]: number } = {};
-    mockHouses.forEach(house => {
+    const initialPoints: { [key: string]: number } = {};
+    houses.forEach(house => {
       initialPoints[house.id] = 0;
     });
     setAnimatedPoints(initialPoints);
@@ -62,10 +29,6 @@ const LeaderboardPreview = () => {
     // Trigger animation after component mounts
     const timer = setTimeout(() => {
       setIsVisible(true);
-      const targetPoints: { [key: number]: number } = {};
-      mockHouses.forEach(house => {
-        targetPoints[house.id] = house.points;
-      });
 
       // Animate points counting up
       const duration = 2000; // 2 seconds
@@ -75,9 +38,9 @@ const LeaderboardPreview = () => {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
         
-        const currentPoints: { [key: number]: number } = {};
-        mockHouses.forEach(house => {
-          currentPoints[house.id] = Math.floor(house.points * progress);
+        const currentPoints: { [key: string]: number } = {};
+        houses.forEach(house => {
+          currentPoints[house.id] = Math.floor(house.total_points * progress);
         });
         
         setAnimatedPoints(currentPoints);
@@ -91,7 +54,7 @@ const LeaderboardPreview = () => {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [houses]);
 
   const getPositionIcon = (position: number) => {
     switch (position) {
@@ -106,6 +69,65 @@ const LeaderboardPreview = () => {
     }
   };
 
+  const getHouseGradient = (color: string) => {
+    switch (color) {
+      case 'red': return 'from-red-500 to-orange-500';
+      case 'blue': return 'from-blue-500 to-indigo-500';
+      case 'green': return 'from-green-500 to-emerald-500';
+      case 'yellow': return 'from-yellow-500 to-amber-500';
+      default: return 'from-primary to-secondary';
+    }
+  };
+
+  const getHouseTextColor = (color: string) => {
+    switch (color) {
+      case 'red': return 'text-red-600';
+      case 'blue': return 'text-blue-600';
+      case 'green': return 'text-green-600';
+      case 'yellow': return 'text-yellow-600';
+      default: return 'text-primary';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <section className="py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <div className="h-8 bg-muted rounded mb-4 w-1/3 mx-auto animate-pulse"></div>
+            <div className="h-4 bg-muted rounded w-1/2 mx-auto animate-pulse"></div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="glass-card p-6 rounded-xl animate-pulse">
+                <div className="h-6 bg-muted rounded mb-4"></div>
+                <div className="h-8 bg-muted rounded mb-2"></div>
+                <div className="h-4 bg-muted rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (houses.length === 0) {
+    return (
+      <section className="py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-foreground mb-2">House Championship</h2>
+            <p className="text-muted-foreground">No house data available</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Sort houses by points and add position
+  const sortedHouses = [...houses].sort((a, b) => b.total_points - a.total_points);
+
   return (
     <section className="py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -119,7 +141,8 @@ const LeaderboardPreview = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {mockHouses.map((house, index) => {
+          {sortedHouses.map((house, index) => {
+            const position = index + 1;
             const percentage = maxPoints > 0 ? (animatedPoints[house.id] / maxPoints) * 100 : 0;
             
             return (
@@ -130,13 +153,13 @@ const LeaderboardPreview = () => {
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    {getPositionIcon(house.position)}
+                    {getPositionIcon(position)}
                     <div>
-                      <h3 className={`text-xl font-bold ${house.color}`}>
+                      <h3 className={`text-xl font-bold ${getHouseTextColor(house.color)}`}>
                         {house.name}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        #{house.position} Position
+                        #{position} Position
                       </p>
                     </div>
                   </div>
@@ -151,7 +174,7 @@ const LeaderboardPreview = () => {
                 <div className="relative">
                   <div className="w-full bg-muted rounded-full h-4 overflow-hidden">
                     <div
-                      className={`h-full bg-gradient-to-r ${house.gradient} rounded-full transition-all duration-1000 ease-out`}
+                      className={`h-full bg-gradient-to-r ${getHouseGradient(house.color)} rounded-full transition-all duration-1000 ease-out`}
                       style={{
                         width: `${percentage}%`,
                         transition: isVisible ? 'width 2s ease-out' : 'none'

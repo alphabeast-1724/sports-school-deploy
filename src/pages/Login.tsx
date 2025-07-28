@@ -24,9 +24,9 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const success = await login(email, password);
+    const result = await login(email, password);
     
-    if (success) {
+    if (result.success) {
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
@@ -34,7 +34,7 @@ const Login = () => {
     } else {
       toast({
         title: "Login failed",
-        description: "Invalid email or password. Try: admin@nses.edu / password",
+        description: result.error || "Please try again.",
         variant: "destructive",
       });
     }
@@ -117,21 +117,12 @@ const Login = () => {
             </Button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-            <p className="text-sm text-muted-foreground text-center mb-2">Demo Credentials:</p>
-            <div className="text-xs space-y-1">
-              <p><strong>Student:</strong> alex@nses.edu / password</p>
-              <p><strong>Admin:</strong> admin@nses.edu / password</p>
-            </div>
-          </div>
-
           {/* Footer */}
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               Don't have an account?{' '}
-              <Link to="/register" className="text-primary hover:underline">
-                Contact Admin
+              <Link to="/signup" className="text-primary hover:underline">
+                Sign up
               </Link>
             </p>
           </div>

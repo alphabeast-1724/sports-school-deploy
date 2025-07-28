@@ -1,14 +1,27 @@
 import { Quote, Lightbulb } from 'lucide-react';
+import { useThoughts } from '@/components/hooks/useSupabaseData';
 
-interface ThoughtCardProps {
-  thought?: string;
-  author?: string;
-}
+const ThoughtCard = () => {
+  const { thought: thoughtData, isLoading } = useThoughts();
 
-const ThoughtCard = ({ 
-  thought = "Excellence is not a skill, it's an attitude. Every champion was once a contender who refused to give up. Keep pushing your limits and success will follow.",
-  author = "Coach Thompson" 
-}: ThoughtCardProps) => {
+  if (isLoading) {
+    return (
+      <section className="py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="glass-card p-8 rounded-xl text-center animate-fade-in delay-300">
+            <div className="animate-pulse">
+              <div className="h-8 w-8 bg-muted rounded-full mx-auto mb-6"></div>
+              <div className="h-6 bg-muted rounded mb-4 mx-auto w-3/4"></div>
+              <div className="h-4 bg-muted rounded mb-6 mx-auto w-1/2"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const thought = thoughtData?.thought || "Excellence is not a skill, it's an attitude. Every champion was once a contender who refused to give up. Keep pushing your limits and success will follow.";
+  const author = thoughtData?.author || "Coach Thompson";
   return (
     <section className="py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
