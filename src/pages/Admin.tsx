@@ -1,6 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import UserManagement from '@/components/admin/UserManagement';
+import TeamManagement from '@/components/admin/TeamManagement';
+import EventManagement from '@/components/admin/EventManagement';
+import AnnouncementManagement from '@/components/admin/AnnouncementManagement';
+import HousePointsManagement from '@/components/admin/HousePointsManagement';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Users, 
   Trophy, 
@@ -11,7 +17,8 @@ import {
   TrendingUp,
   Medal,
   Activity,
-  UserPlus
+  UserPlus,
+  Megaphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,29 +27,97 @@ import { Badge } from '@/components/ui/badge';
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    activeTeams: 0,
+    upcomingEvents: 0,
+    totalPoints: 0,
+    monthlyGrowth: 0,
+    engagementRate: 0
+  });
 
-  // Mock data for admin dashboard
-  const stats = {
-    totalStudents: 1247,
-    activeTeams: 24,
-    upcomingEvents: 8,
-    totalPoints: 4670,
-    monthlyGrowth: 12.5,
-    engagementRate: 89.2
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      // Fetch total students
+      const { count: studentsCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true);
+
+      // Fetch active teams
+      const { count: teamsCount } = await supabase
+        .from('teams')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true);
+
+      // Fetch upcoming events
+      const { count: eventsCount } = await supabase
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'upcoming')
+        .gte('event_date', new Date().toISOString().split('T')[0]);
+
+      // Fetch total points
+      const { data: pointsData } = await supabase
+        .from('houses')
+        .select('total_points');
+      
+      const totalPoints = pointsData?.reduce((sum, house) => sum + (house.total_points || 0), 0) || 0;
+
+      setStats({
+        totalStudents: studentsCount || 0,
+        activeTeams: teamsCount || 0,
+        upcomingEvents: eventsCount || 0,
+        totalPoints,
+        monthlyGrowth: 12.5, // Can be calculated based on historical data
+        engagementRate: 89.2 // Can be calculated based on participation
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
   };
 
-  const recentActivities = [
-    { id: 1, type: 'points', message: 'Blue Dragons earned 50 points in Football', time: '2 hours ago' },
-    { id: 2, type: 'event', message: 'Basketball Tournament scheduled for next week', time: '4 hours ago' },
-    { id: 3, type: 'user', message: 'New student Alex Johnson joined Red Phoenix', time: '6 hours ago' },
-    { id: 4, type: 'achievement', message: 'Green Wolves won Swimming Championship', time: '1 day ago' }
-  ];
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchRecentActivities();
+  }, []);
+
+  const fetchRecentActivities = async () => {
+    try {
+      // Fetch recent house points
+      const { data: pointsData } = await supabase
+        .from('house_points')
+        .select(`
+          *,
+          houses(name)
+        `)
+        .order('awarded_at', { ascending: false })
+        .limit(10);
+
+      const activities = pointsData?.map(point => ({
+        id: point.id,
+        type: 'points',
+        message: `${point.houses?.name} earned ${point.points} points for ${point.reason}`,
+        time: new Date(point.awarded_at).toLocaleDateString()
+      })) || [];
+
+      setRecentActivities(activities);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    }
+  };
 
   const quickActions = [
-    { title: 'Add Points', icon: Trophy, description: 'Award points to houses', color: 'bg-primary' },
-    { title: 'Create Event', icon: Calendar, description: 'Schedule new sports event', color: 'bg-secondary' },
-    { title: 'Add Student', icon: UserPlus, description: 'Register new student', color: 'bg-accent' },
-    { title: 'Manage Teams', icon: Users, description: 'Edit team rosters', color: 'bg-muted' }
+    { title: 'Award Points', icon: Trophy, description: 'Award points to houses', action: () => setActiveTab('points') },
+    { title: 'Create Event', icon: Calendar, description: 'Schedule new sports event', action: () => setActiveTab('events') },
+    { title: 'Add User', icon: UserPlus, description: 'Register new user', action: () => setActiveTab('users') },
+    { title: 'Manage Teams', icon: Users, description: 'Edit team rosters', action: () => setActiveTab('teams') },
+    { title: 'Announcements', icon: Megaphone, description: 'Create announcements', action: () => setActiveTab('announcements') }
   ];
 
   return (
@@ -62,12 +137,13 @@ const Admin = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 glass-card">
+            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 glass-card">
               <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="teams">Teams</TabsTrigger>
               <TabsTrigger value="events">Events</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="announcements">Announcements</TabsTrigger>
+              <TabsTrigger value="points">Points</TabsTrigger>
             </TabsList>
 
             {/* Dashboard Tab */}
@@ -149,12 +225,13 @@ const Admin = () => {
                   <CardDescription>Common administrative tasks</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                     {quickActions.map((action, index) => (
                       <Button
                         key={action.title}
                         variant="outline"
                         className="h-24 flex-col space-y-2 hover:scale-105 transition-transform"
+                        onClick={action.action}
                       >
                         <action.icon className="h-6 w-6" />
                         <div className="text-center">
@@ -196,102 +273,27 @@ const Admin = () => {
 
             {/* Users Tab */}
             <TabsContent value="users" className="space-y-6">
-              <Card className="glass-card border-0">
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle>User Management</CardTitle>
-                      <CardDescription>Manage students, teachers, and administrators</CardDescription>
-                    </div>
-                    <Button className="btn-primary">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add User
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">User Management</h3>
-                    <p className="text-muted-foreground">
-                      User management interface would be implemented here
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <UserManagement />
             </TabsContent>
 
             {/* Teams Tab */}
             <TabsContent value="teams" className="space-y-6">
-              <Card className="glass-card border-0">
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle>Team Management</CardTitle>
-                      <CardDescription>Manage sports teams and rosters</CardDescription>
-                    </div>
-                    <Button className="btn-primary">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Team
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">Team Management</h3>
-                    <p className="text-muted-foreground">
-                      Team management interface would be implemented here
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <TeamManagement />
             </TabsContent>
 
             {/* Events Tab */}
             <TabsContent value="events" className="space-y-6">
-              <Card className="glass-card border-0">
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle>Event Management</CardTitle>
-                      <CardDescription>Schedule and manage sports events</CardDescription>
-                    </div>
-                    <Button className="btn-primary">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Event
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <Calendar className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">Event Management</h3>
-                    <p className="text-muted-foreground">
-                      Event management interface would be implemented here
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <EventManagement />
             </TabsContent>
 
-            {/* Analytics Tab */}
-            <TabsContent value="analytics" className="space-y-6">
-              <Card className="glass-card border-0">
-                <CardHeader>
-                  <CardTitle>Analytics & Reports</CardTitle>
-                  <CardDescription>View detailed statistics and generate reports</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">Analytics Dashboard</h3>
-                    <p className="text-muted-foreground">
-                      Analytics and reporting interface would be implemented here
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Announcements Tab */}
+            <TabsContent value="announcements" className="space-y-6">
+              <AnnouncementManagement />
+            </TabsContent>
+
+            {/* House Points Tab */}
+            <TabsContent value="points" className="space-y-6">
+              <HousePointsManagement />
             </TabsContent>
           </Tabs>
         </div>
