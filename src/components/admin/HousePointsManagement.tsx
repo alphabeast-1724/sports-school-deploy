@@ -122,36 +122,45 @@ const HousePointsManagement = () => {
     
     try {
       const currentUser = await supabase.auth.getUser();
+      if (!currentUser.data.user) throw new Error("You must be logged in to award points.");
+
       const points = parseInt(formData.points);
-      
+      if (isNaN(points)) throw new Error("Points must be a valid number.");
+
       const pointData = {
         house_id: formData.house_id,
         points: points,
         reason: formData.reason,
         category: formData.category as 'sports' | 'academics' | 'behavior' | 'participation',
-        awarded_by: currentUser.data.user?.id,
+        awarded_by: currentUser.data.user.id,
         awarded_to_user: formData.awarded_to_user || null
       };
 
-      const { error } = await supabase
+      // Insert the new point record
+      const { error: insertError } = await supabase
         .from('house_points')
         .insert(pointData);
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
-      // Update house total points manually
-        const { data: currentHouse } = await supabase
+      // Get the current total points for the house
+      const { data: currentHouse, error: fetchError } = await supabase
+        .from('houses')
+        .select('total_points')
+        .eq('id', formData.house_id)
+        .single();
+
+      if (fetchError) throw fetchError;
+      
+      // Calculate and update the new total
+      if (currentHouse) {
+        const newTotal = (currentHouse.total_points || 0) + points;
+        const { error: updateError } = await supabase
           .from('houses')
-          .select('total_points')
-          .eq('id', formData.house_id)
-          .single();
-
-        if (currentHouse) {
-          await supabase
-            .from('houses')
-            .update({ total_points: (currentHouse.total_points || 0) + points })
-            .eq('id', formData.house_id);
-        }
+          .update({ total_points: newTotal })
+          .eq('id', formData.house_id);
+        
+        if (updateError) throw updateError;
       }
 
       toast({
@@ -166,7 +175,7 @@ const HousePointsManagement = () => {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to award points",
+        description: error.message || "Failed to save points",
         variant: "destructive"
       });
     }
@@ -196,7 +205,7 @@ const HousePointsManagement = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {houses.map((house, index) => (
+            {houses.sort((a, b) => b.total_points - a.total_points).map((house, index) => (
               <Card key={house.id} className="glass-card border-0">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
@@ -249,7 +258,6 @@ const HousePointsManagement = () => {
                       <Select
                         value={formData.house_id}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, house_id: value }))}
-                        required
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select house" />
